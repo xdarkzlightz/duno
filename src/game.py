@@ -1,20 +1,26 @@
 from random import shuffle
 
 from player import Player
+"""
+    TODO: Make it so wild cards or special cards can't be the starting card
+    TODO: Create before/after turn functions for special cards
+"""
 
 
 class Game:
     """Game class for uno"""
 
-    # A dictionary of all the players in the game
-    players = {}
-
-    turn_order = []
-    turn = 0
-
     def __init__(self, owner_id, owner_name, channel_id):
         self.owner_id = owner_id
         self.channel_id = channel_id
+        self.players = {}
+        self.turn_order = []
+        self.turn = 0
+        self.started = False
+        self.current_card = None
+        self.deck = None
+        self.discard_pile = []
+
         self.add_player(player_id=owner_id, player_name=owner_name)
 
     def add_player(self, player_id, player_name):
@@ -26,9 +32,18 @@ class Game:
     def start(self):
         """Starts the uno game"""
         self.create_deck()
-        for player_id, val in self.players:
+        for player_id, player in self.players.items():
             self.turn_order.append(player_id)
+            for num in range(7):
+                card = self.deck.pop()
+                player.hand.append(card)
+                self.discard_pile.append(card)
+
         shuffle(self.turn_order)
+        print(self.turn_order)
+        self.current_card = self.deck.pop()
+        self.discard_pile.append(self.current_card)
+        print(self.current_card)
 
     def create_deck(self):
         """Creates the uno deck"""

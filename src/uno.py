@@ -159,6 +159,37 @@ class Uno(commands.Cog):
             action=f"{ctx.author.display_name} has played a card", game=game)
         await ctx.send(embed=embed)
 
+    @commands.command()
+    @game_exists(games)
+    async def uno(self, ctx):
+        """
+        Let's everyone know you have uno
+        / Calls out the first person who doesn't uno
+        """
+        game = self.games[ctx.channel.id]
+
+        player_id = ctx.author.id
+        if self.dev_su_id is not None:
+            player_id = self.dev_su_id
+
+        player = game.players[player_id]
+
+        if len(player.hand) == 1:
+            await ctx.send(f"{player.player_name} has one card left!")
+            player.uno = True
+            return None
+        callout = False
+        for player_id, player in game.players.items():
+            if len(player.hand) == 1 and player.uno is False:
+                await ctx.send(f"{player.player_name} got called out!")
+                for num in range(2):
+                    card = game.deck.pop()
+                    player.hand.append(card)
+                callout = True
+                break
+        if callout is False:
+            await ctx.send("You do not have uno and didn't call out anyone.")
+
     # Dev commands
     @commands.command()
     async def reload(self, ctx):

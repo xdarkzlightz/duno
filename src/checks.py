@@ -1,8 +1,4 @@
 from discord.ext import commands
-"""
-    TODO: Add uno check
-    TODO: Add winning check
-"""
 
 
 def game_exists(games):

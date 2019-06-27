@@ -5,3 +5,4 @@ class Player:
         self.player_id = player_id
         self.player_name = player_name
         self.hand = []
+        self.uno = False

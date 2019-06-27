@@ -1,6 +1,6 @@
 """
     Author: xdarkzlightz#4975
-    Version: v0.0.0
+    Version: v1.0.0
 """
 
 import os

@@ -1,16 +1,10 @@
-from discord.ext import commands
-
-
-def game_exists(games):
-    async def predicate(ctx):
-        if ctx.channel.id not in games.keys():
-            await ctx.send("Oops! A game doesn't exist in your channel!" +
-                           " You can create one with `;create`")
-            return False
-        else:
-            return True
-
-    return commands.check(predicate)
+async def game_exists(ctx, games):
+    if ctx.channel.id not in games.keys():
+        await ctx.send("Oops! A game doesn't exist in your channel!" +
+                       " You can create one with `;create`")
+        return False
+    else:
+        return True
 
 
 async def valid_card(player_id, colour, value, game, ctx):

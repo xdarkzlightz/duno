@@ -2,11 +2,24 @@ from random import randint, shuffle
 
 from player import Player
 """
-    TODO: Make it so wild cards or special cards can't be the starting card
+    IMPORTANT
     TODO: Add AFK timer
     TODO: Add game AFK timer
-    TODO: Auto-draw if the player can't play a card
 """
+
+
+def card_matches(card, hand):
+    """Checks if the colour/value matches the card in the players hand"""
+    wilds = ["wild", "wild+4"]
+    matches = False
+    for player_card in hand:
+        if matches:
+            break
+        elif player_card[0] in wilds:
+            matches = True
+        elif player_card[0] == card[0] or player_card[1] == card[1]:
+            matches = True
+    return matches
 
 
 class Game:
@@ -22,6 +35,7 @@ class Game:
         self.current_card = None
         self.deck = None
         self.discard_pile = []
+        self.previous_player = None
 
         self.add_player(player_id=owner_id, player_name=owner_name)
 
@@ -48,20 +62,14 @@ class Game:
             self.current_card = card
         self.discard_pile.append(self.current_card)
 
-        # If the player can't play then draw a card
-        wilds = ["wild", "wild+4"]
-        matches = False
-        for card in self.players[self.turn_order[self.turn]].hand:
-            if matches:
-                break
-            elif card[0] in wilds:
-                matches = True
-            elif card[0] == self.current_card[0] or card[
-                    1] == self.current_card[1]:
-                matches = True
-        if matches is False:
+        matches = card_matches(self.current_card,
+                               self.players[self.turn_order[self.turn]].hand)
+        while matches is False:
+            matches = card_matches(
+                self.current_card,
+                self.players[self.turn_order[self.turn]].hand)
+
             self.give_cards(self.turn_order[self.turn], 1)
-            self.next_turn()
 
     def play(self, player_id, colour, value):
         """Plays a card from the specified players hand"""
@@ -101,25 +109,22 @@ class Game:
 
     def next_turn(self):
         """Goes onto the next turn"""
+        self.previous_player = self.players[self.turn_order[self.turn]]
+
         if self.turn + 1 > len(self.turn_order) - 1:
             self.turn = 0
         else:
             self.turn += 1
 
         # If the player can't play then draw a card
-        wilds = ["wild", "wild+4"]
-        matches = False
-        for card in self.players[self.turn_order[self.turn]].hand:
-            if matches:
-                break
-            elif card[0] in wilds:
-                matches = True
-            elif card[0] == self.current_card[0] or card[
-                    1] == self.current_card[1]:
-                matches = True
-        if matches is False:
+        matches = card_matches(self.current_card,
+                               self.players[self.turn_order[self.turn]].hand)
+        while matches is False:
+            matches = card_matches(
+                self.current_card,
+                self.players[self.turn_order[self.turn]].hand)
+
             self.give_cards(self.turn_order[self.turn], 1)
-            self.next_turn()
 
     def give_cards(self, player_id, amount):
         """Gives the specified player x amount of cards"""

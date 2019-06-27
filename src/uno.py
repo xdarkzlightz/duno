@@ -10,10 +10,8 @@ from embed import embed_hand, embed_turn
 from game import Game
 """
     TODO: Make all developer commands have a developer check
-    TODO: Create uno command
     TODO: Delete command triggers
     TODO: Delete old game messages, send a new one whenever players message
-    TODO: Create quit command
 """
 
 
@@ -103,6 +101,26 @@ class Uno(commands.Cog):
 
         embed = embed_turn(action="Game started, GLHF!", game=game)
         await ctx.send(embed=embed)
+
+    @commands.command()
+    @game_exists(games)
+    async def leave(self, ctx):
+        """
+        Leaves a game,
+        if you're the only person in the game then the game gets deleted
+        """
+        game = self.games[ctx.channel.id]
+
+        player_id = ctx.author.id
+        if self.dev_su_id is not None:
+            player_id = self.dev_su_id
+
+        del game.players[player_id]
+        if len(game.players) == 0:
+            del self.games[ctx.channel.id]
+            await ctx.send("Game removed!")
+        else:
+            await ctx.send(f"{ctx.author.name} has left the game!")
 
     @commands.command()
     @game_exists(games)

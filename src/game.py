@@ -5,6 +5,7 @@ from player import Player
     TODO: Make it so wild cards or special cards can't be the starting card
     TODO: Add AFK timer
     TODO: Add game AFK timer
+    TODO: Auto-draw if the player can't play a card
 """
 
 
@@ -47,6 +48,21 @@ class Game:
             self.current_card = card
         self.discard_pile.append(self.current_card)
 
+        # If the player can't play then draw a card
+        wilds = ["wild", "wild+4"]
+        matches = False
+        for card in self.players[self.turn_order[self.turn]].hand:
+            if matches:
+                break
+            elif card[0] in wilds:
+                matches = True
+            elif card[0] == self.current_card[0] or card[
+                    1] == self.current_card[1]:
+                matches = True
+        if matches is False:
+            self.give_cards(self.turn_order[self.turn], 1)
+            self.next_turn()
+
     def play(self, player_id, colour, value):
         """Plays a card from the specified players hand"""
         self.before_turn()
@@ -70,6 +86,7 @@ class Game:
 
     def after_turn(self):
         """Runs after a turn"""
+        # Do actions for any special cards
         value = self.current_card[1]
         if value == "skip":
             self.next_turn()
@@ -88,6 +105,21 @@ class Game:
             self.turn = 0
         else:
             self.turn += 1
+
+        # If the player can't play then draw a card
+        wilds = ["wild", "wild+4"]
+        matches = False
+        for card in self.players[self.turn_order[self.turn]].hand:
+            if matches:
+                break
+            elif card[0] in wilds:
+                matches = True
+            elif card[0] == self.current_card[0] or card[
+                    1] == self.current_card[1]:
+                matches = True
+        if matches is False:
+            self.give_cards(self.turn_order[self.turn], 1)
+            self.next_turn()
 
     def give_cards(self, player_id, amount):
         """Gives the specified player x amount of cards"""

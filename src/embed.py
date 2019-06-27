@@ -17,7 +17,14 @@ def embed_turn(action, game):
 
     current_player = game.players[game.turn_order[game.turn]]
 
-    embed = Embed(colour=hex_colours[game.current_card[0]], title=action)
+    colour = None
+    wilds = ["wild", "wild+4"]
+    if game.current_card[0] in wilds:
+        colour = hex_colours[game.current_card[1]]
+    else:
+        colour = hex_colours[game.current_card[0]]
+
+    embed = Embed(colour=colour, title=action)
 
     embed.add_field(name="Players", value="\n".join(players))
     embed.add_field(name="Current Card",
@@ -39,7 +46,14 @@ def embed_hand(action, player_id, game):
         hand.append(f"{card[0]} {val}")
     hand.sort()
 
-    embed = Embed(colour=hex_colours[game.current_card[0]], title=action)
+    colour = None
+    wilds = ["wild", "wild+4"]
+    if game.current_card[0] in wilds:
+        colour = hex_colours[game.current_card[1]]
+    else:
+        colour = hex_colours[game.current_card[0]]
+
+    embed = Embed(colour=colour, title=action)
     embed.add_field(name="Cards", value=", ".join(hand))
     embed.set_footer(text=f"Total cards: {len(hand)}")
     return embed

@@ -151,6 +151,10 @@ class Uno(commands.Cog):
         if self.dev_su_id is not None:
             player_id = self.dev_su_id
 
+        if player_id != game.turn_order[game.turn]:
+            await ctx.send("It's not your turn!")
+            return None
+
         valid = await valid_card(player_id=player_id,
                                  colour=colour,
                                  value=value,
@@ -160,7 +164,7 @@ class Uno(commands.Cog):
             return None
 
         matches = await card_matches(colour=colour,
-                                     value=colour,
+                                     value=value,
                                      card=game.current_card,
                                      ctx=ctx)
         if matches is False:

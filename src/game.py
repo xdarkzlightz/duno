@@ -1,12 +1,10 @@
-from random import shuffle
+from random import randint, shuffle
 
 from player import Player
 """
     TODO: Make it so wild cards or special cards can't be the starting card
-    TODO: Create before/after turn functions for special cards
     TODO: Add AFK timer
     TODO: Add game AFK timer
-    TODO: Make special cards work
 """
 
 
@@ -37,37 +35,70 @@ class Game:
         self.create_deck()
         for player_id, player in self.players.items():
             self.turn_order.append(player_id)
-            for num in range(7):
-                card = self.deck.pop()
-                player.hand.append(card)
-                self.discard_pile.append(card)
+            self.give_cards(player_id, 7)
 
         shuffle(self.turn_order)
-        print(self.turn_order)
-        self.current_card = self.deck.pop()
+        card = self.deck.pop()
+        wilds = ["wild", "wild+4"]
+        colours = ["red", "green", "blue", "yellow"]
+        if card[0] in wilds:
+            self.current_card = (card[0], colours[randint(0, 4)])
+        else:
+            self.current_card = card
         self.discard_pile.append(self.current_card)
-        print(self.current_card)
 
     def play(self, player_id, colour, value):
         """Plays a card from the specified players hand"""
+        self.before_turn()
         wilds = ["wild", "wild+4"]
         player = self.players[player_id]
 
         if colour in wilds:
             player.hand.remove((colour, ))
             self.current_card = (colour, value)
+            self.discard_pile.append((colour))
         else:
             player.hand.remove((colour, value))
             self.current_card = (colour, value)
+            self.discard_pile.append((colour, value))
 
         self.next_turn()
+        self.after_turn()
+
+    def before_turn(self):
+        """Runs before the turn"""
+
+    def after_turn(self):
+        """Runs after a turn"""
+        value = self.current_card[1]
+        if value == "skip":
+            self.next_turn()
+        elif value == "reverse":
+            self.turn_order.reverse()
+        elif value == "+2":
+            self.give_cards(self.turn_order[self.turn], 2)
+            self.next_turn()
+        elif self.current_card[0] == "wild+4":
+            self.give_cards(self.turn_order[self.turn], 4)
+            self.next_turn()
 
     def next_turn(self):
         """Goes onto the next turn"""
         if self.turn + 1 > len(self.turn_order) - 1:
-            self.turn = 2
+            self.turn = 0
         else:
             self.turn += 1
+
+    def give_cards(self, player_id, amount):
+        """Gives the specified player x amount of cards"""
+        player = self.players[player_id]
+        for x in range(amount):
+            if len(self.deck) == 0:
+                self.deck = self.discard_pile.copy()
+                del self.discard_pile[:]
+            card = self.deck.pop()
+            player.hand.append(card)
+            self.discard_pile.append(card)
 
     def create_deck(self):
         """Creates the uno deck"""
@@ -95,5 +126,4 @@ class Game:
                     deck.append(("wild+4", ))
 
         shuffle(deck)
-        print(deck)
         self.deck = deck

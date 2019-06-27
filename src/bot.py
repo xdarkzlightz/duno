@@ -1,15 +1,6 @@
 """
     Author: xdarkzlightz#4975
     Version: v0.0.0
-
-    TODO: Setup initial game
-
-    Commands:
-        normal commands:
-            play - plays a card
-            draw - draw a card
-            kick - kick a player from the game
-            quit - quits the game
 """
 
 import os

@@ -4,6 +4,9 @@ from player import Player
 """
     TODO: Make it so wild cards or special cards can't be the starting card
     TODO: Create before/after turn functions for special cards
+    TODO: Add AFK timer
+    TODO: Add game AFK timer
+    TODO: Make special cards work
 """
 
 
@@ -44,6 +47,27 @@ class Game:
         self.current_card = self.deck.pop()
         self.discard_pile.append(self.current_card)
         print(self.current_card)
+
+    def play(self, player_id, colour, value):
+        """Plays a card from the specified players hand"""
+        wilds = ["wild", "wild+4"]
+        player = self.players[player_id]
+
+        if colour in wilds:
+            player.hand.remove((colour, ))
+            self.current_card = (colour, value)
+        else:
+            player.hand.remove((colour, value))
+            self.current_card = (colour, value)
+
+        self.next_turn()
+
+    def next_turn(self):
+        """Goes onto the next turn"""
+        if self.turn + 1 > len(self.turn_order) - 1:
+            self.turn = 2
+        else:
+            self.turn += 1
 
     def create_deck(self):
         """Creates the uno deck"""

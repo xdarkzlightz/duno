@@ -1,4 +1,8 @@
 from discord.ext import commands
+"""
+    TODO: Add uno check
+    TODO: Add winning check
+"""
 
 
 def game_exists(games):
@@ -32,18 +36,25 @@ async def valid_card(player_id, colour, value, game, ctx):
 
     if colour not in colours and wild is False:
         await ctx.send(f"Invalid colour! You said {colour}")
+        return False
     elif not_valid_value:
         await ctx.send(f"Invalid value! You said {value}")
+        return False
 
     player = game.players[player_id]
 
     if wild and (colour, ) not in player.hand:
         await ctx.send("Sorry but you don't have that card!")
+        return False
     if wild is False and (colour, value) not in player.hand:
         await ctx.send("Sorry but you don't have that card!")
+        return False
+
+    return True
 
 
 async def card_matches(colour, value, card, ctx):
+    """Checks if the colour/value matches a card"""
     wilds = ["wild", "wild+4"]
     matches = False
     if colour in wilds:
@@ -53,3 +64,17 @@ async def card_matches(colour, value, card, ctx):
 
     if matches is False:
         await ctx.send("Your card doesn't match!")
+        return False
+
+    return True
+
+
+async def check_win(ctx, player_id, game):
+    """Checks if the player has won the game"""
+    player = game.players[player_id]
+
+    if len(player.hand) == 0:
+        await ctx.send(f"Game over! {player.player_name} has won!")
+        return True
+
+    return False

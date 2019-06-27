@@ -5,7 +5,7 @@ from discord import Embed
 from discord.ext import commands
 from discord.utils import get
 
-from checks import card_matches, game_exists, valid_card
+from checks import card_matches, check_win, game_exists, valid_card
 from embed import embed_hand, embed_turn
 from game import Game
 """
@@ -14,8 +14,6 @@ from game import Game
     TODO: Delete command triggers
     TODO: Delete old game messages, send a new one whenever players message
     TODO: Create quit command
-    TODO: Add uno check
-    TODO: Add winning check
 """
 
 
@@ -135,18 +133,27 @@ class Uno(commands.Cog):
         if self.dev_su_id is not None:
             player_id = self.dev_su_id
 
-        await valid_card(player_id=player_id,
-                         colour=colour,
-                         value=value,
-                         game=game,
-                         ctx=ctx)
+        valid = await valid_card(player_id=player_id,
+                                 colour=colour,
+                                 value=value,
+                                 game=game,
+                                 ctx=ctx)
+        if valid is False:
+            return None
 
-        await card_matches(colour=colour,
-                           value=colour,
-                           card=game.current_card,
-                           ctx=ctx)
+        matches = await card_matches(colour=colour,
+                                     value=colour,
+                                     card=game.current_card,
+                                     ctx=ctx)
+        if matches is False:
+            return None
 
         game.play(player_id, colour, value)
+
+        won = await check_win(ctx=ctx, player_id=player_id, game=game)
+        if won:
+            del self.games[ctx.channel.id]
+            return None
 
         embed = embed_turn(
             action=f"{ctx.author.display_name} has played a card", game=game)
@@ -217,6 +224,23 @@ class Uno(commands.Cog):
         else:
             player.hand.remove((colour, value))
             await ctx.send(f"Removed {colour} {value}")
+
+    @commands.command()
+    @game_exists(games)
+    async def removeCards(self, ctx, amount: int):
+        """Removes a number of cards from your hand (dev only)"""
+        game = self.games[ctx.channel.id]
+
+        player_id = ctx.author.id
+        if self.dev_su_id is not None:
+            player_id = self.dev_su_id
+
+        player = game.players[player_id]
+
+        for num in range(amount):
+            player.hand.pop()
+
+        await ctx.send(f"Removed {amount} card(s) from your hand")
 
 
 def setup(bot):

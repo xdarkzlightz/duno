@@ -5,11 +5,6 @@ from discord.utils import get
 
 from embed import embed_hand, embed_turn
 from player import Player
-"""
-    IMPORTANT
-    TODO: Add AFK timer
-    TODO: Add game AFK timer
-"""
 
 
 def card_matches(card, hand):
@@ -44,6 +39,7 @@ class Game:
         self.previous_player = None
         self.last_message = None
         self.bot = bot
+        self.deleted = False
 
         self.add_player(player_id=owner_id, player_name=owner_name)
 
@@ -148,8 +144,11 @@ class Game:
                 return False
 
         try:
-            await self.bot.wait_for('command', check=pred, timeout=60.0)
+            await self.bot.wait_for('command', check=pred, timeout=10.0)
         except TimeoutError:
+            print(self.deleted)
+            if self.deleted:
+                return
             player = self.players[self.turn_order[self.turn]]
             player.strikes += 1
             self.next_turn()

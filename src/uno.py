@@ -10,9 +10,6 @@ from discord.utils import get
 from checks import card_matches, check_win, game_exists, valid_card
 from embed import embed_hand, embed_turn
 from game import Game
-"""
-    TODO: Delete old game messages, send a new one whenever players message
-"""
 
 
 def get_action_response(author, game):
@@ -62,6 +59,9 @@ class Uno(commands.Cog):
 
             await self.bot.wait_for('command', timeout=300.0)
         except TimeoutError:
+            if self.games[ctx.channel.id].deleted:
+                return
+            self.games[ctx.channel.id].deleted = True
             del self.games[ctx.channel.id]
             await ctx.channel.send(
                 "Game was AFK for too long and has now been removed")
@@ -163,8 +163,12 @@ class Uno(commands.Cog):
         game.last_message = msg.id
 
         await game.start_afk_loop()
-        if len(game.players) == 1:
-            await ctx.send("Only one player left, removing game")
+        try:
+            if len(game.players) == 1 and game.deleted is not True:
+                await ctx.send("Only one player left, removing game")
+                del self.games[ctx.channel.id]
+        except KeyError:
+            pass
 
     @commands.command()
     async def leave(self, ctx):
@@ -181,8 +185,15 @@ class Uno(commands.Cog):
         if self.dev_su_id is not None:
             player_id = self.dev_su_id
 
+        if ctx.author.id == game.turn_order[game.turn]:
+            game.next_turn()
+
         del game.players[player_id]
-        if len(game.players) == 0:
+        del game.turn_order[game.turn]
+
+        if len(game.players) == 0 or len(game.players) == 1:
+            print(self.games)
+            self.games[ctx.channel.id].deleted = True
             del self.games[ctx.channel.id]
             await ctx.send("Game removed!")
         else:
@@ -244,6 +255,7 @@ class Uno(commands.Cog):
 
         won = await check_win(ctx=ctx, player_id=player_id, game=game)
         if won:
+            game.deleted = True
             del self.games[ctx.channel.id]
             return None
 
@@ -269,6 +281,7 @@ class Uno(commands.Cog):
         await game.start_afk_loop()
         if len(game.players) == 1:
             await ctx.send("One player left, removing game")
+            game.deleted = True
             del self.games[ctx.channel.id]
 
     @commands.command()

@@ -143,7 +143,8 @@ class Uno(commands.Cog):
                 await dm_channel.send(embed=embed)
 
         embed = embed_turn(action="Game started, GLHF!", game=game)
-        await ctx.send(embed=embed)
+        msg = await ctx.send(embed=embed)
+        game.last_message = msg.id
 
     @commands.command()
     async def leave(self, ctx):
@@ -237,9 +238,13 @@ class Uno(commands.Cog):
                                game=game)
             await dm_channel.send(embed=embed)
 
+        last_message = await ctx.channel.fetch_message(game.last_message)
+        await last_message.delete()
+
         action = get_action_response(ctx.author.display_name, game)
         embed = embed_turn(action=action, game=game)
-        await ctx.send(embed=embed)
+        msg = await ctx.send(embed=embed)
+        game.last_message = msg.id
 
     @commands.command()
     async def uno(self, ctx):

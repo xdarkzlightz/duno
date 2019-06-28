@@ -38,6 +38,7 @@ class Game:
         self.deck = None
         self.discard_pile = []
         self.previous_player = None
+        self.last_message = None
 
         self.add_player(player_id=owner_id, player_name=owner_name)
 

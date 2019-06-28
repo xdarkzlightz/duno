@@ -6,3 +6,4 @@ class Player:
         self.player_name = player_name
         self.hand = []
         self.uno = False
+        self.strikes = 0

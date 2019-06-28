@@ -1,4 +1,5 @@
 import typing
+from asyncio import TimeoutError
 from random import randint
 
 from discord import Embed
@@ -38,11 +39,10 @@ def get_action_response(author, game):
 
 
 class Uno(commands.Cog):
-    games = {}
-
     def __init__(self, bot):
         self.bot = bot
         self.dev_su_id = None
+        self.games = {}
 
     @commands.Cog.listener()
     async def on_command(self, ctx):
@@ -50,6 +50,21 @@ class Uno(commands.Cog):
             await ctx.message.delete()
         except Forbidden:
             pass
+
+        try:
+
+            def pred(pred_ctx):
+                channel = pred_ctx.channel.id == ctx.channel.id
+                if channel and ctx.channel.id in self.games.keys():
+                    return True
+                else:
+                    return False
+
+            await self.bot.wait_for('command', timeout=300.0)
+        except TimeoutError:
+            del self.games[ctx.channel.id]
+            await ctx.channel.send(
+                "Game was AFK for too long and has now been removed")
 
     @commands.command()
     async def create(self, ctx):
@@ -62,7 +77,8 @@ class Uno(commands.Cog):
         # Creates a new game and adds it to the games dict
         self.games[ctx.channel.id] = Game(owner_id=ctx.author.id,
                                           owner_name=ctx.author.display_name,
-                                          channel_id=ctx.channel.id)
+                                          channel_id=ctx.channel.id,
+                                          bot=self.bot)
         # Log that a new game has been created
         print(f"New game created: {self.games[ctx.channel.id].channel_id}")
         # Send the new game message
@@ -145,6 +161,10 @@ class Uno(commands.Cog):
         embed = embed_turn(action="Game started, GLHF!", game=game)
         msg = await ctx.send(embed=embed)
         game.last_message = msg.id
+
+        await game.start_afk_loop()
+        if len(game.players) == 1:
+            await ctx.send("Only one player left, removing game")
 
     @commands.command()
     async def leave(self, ctx):
@@ -245,6 +265,11 @@ class Uno(commands.Cog):
         embed = embed_turn(action=action, game=game)
         msg = await ctx.send(embed=embed)
         game.last_message = msg.id
+
+        await game.start_afk_loop()
+        if len(game.players) == 1:
+            await ctx.send("One player left, removing game")
+            del self.games[ctx.channel.id]
 
     @commands.command()
     async def uno(self, ctx):

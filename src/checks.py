@@ -49,6 +49,8 @@ async def card_matches(colour, value, card, ctx):
     matches = False
     if colour in wilds:
         matches = True
+    elif card[0] in wilds and colour == card[1]:
+        matches = True
     elif colour == card[0] or value == card[1]:
         matches = True
 

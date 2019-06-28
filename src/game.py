@@ -17,6 +17,8 @@ def card_matches(card, hand):
             break
         elif player_card[0] in wilds:
             matches = True
+        elif card[0] in wilds and player_card[0] == card[1]:
+            matches = True
         elif player_card[0] == card[0] or player_card[1] == card[1]:
             matches = True
     return matches

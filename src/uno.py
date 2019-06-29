@@ -67,6 +67,7 @@ class Uno(commands.Cog):
                 "Game was AFK for too long and has now been removed")
 
     @commands.command()
+    @commands.guild_only()
     async def create(self, ctx):
         """Creates a new game"""
         if ctx.channel.id in self.games.keys():
@@ -85,6 +86,7 @@ class Uno(commands.Cog):
         await ctx.send("Game created, players can join it with `;join`!")
 
     @commands.command()
+    @commands.guild_only()
     async def join(self, ctx):
         """Joins a game"""
         exists = await game_exists(ctx, self.games)
@@ -117,6 +119,7 @@ class Uno(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.command()
+    @commands.guild_only()
     async def players(self, ctx):
         """Shows all the players in the game"""
         exists = await game_exists(ctx, self.games)
@@ -136,6 +139,7 @@ class Uno(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.command()
+    @commands.guild_only()
     async def start(self, ctx):
         """Starts the game"""
         exists = await game_exists(ctx, self.games)
@@ -176,6 +180,7 @@ class Uno(commands.Cog):
             pass
 
     @commands.command()
+    @commands.guild_only()
     async def leave(self, ctx):
         """
         Leaves a game,
@@ -206,6 +211,7 @@ class Uno(commands.Cog):
             await ctx.send(f"{ctx.author.name} has left the game!")
 
     @commands.command()
+    @commands.guild_only()
     async def hand(self, ctx):
         """Sends you a dm with your cards"""
         exists = await game_exists(ctx, self.games)
@@ -232,6 +238,7 @@ class Uno(commands.Cog):
         await dm_channel.send(embed=embed)
 
     @commands.command()
+    @commands.guild_only()
     async def play(self, ctx, colour, value):
         """Lets you play a card in your hand"""
         colour = colour.lower()
@@ -304,6 +311,7 @@ class Uno(commands.Cog):
             del self.games[ctx.channel.id]
 
     @commands.command()
+    @commands.guild_only()
     async def uno(self, ctx):
         """
         Let's everyone know you have uno
@@ -351,6 +359,7 @@ class Uno(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
+    @commands.guild_only()
     async def addPlayer(self, ctx):
         """Adds a new player to the game (dev only)"""
         exists = await game_exists(ctx, self.games)
@@ -365,6 +374,7 @@ class Uno(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
+    @commands.guild_only()
     async def su(self, ctx, player_id: int):
         """Lets you execute commands as other players (dev only)"""
         exists = await game_exists(ctx, self.games)
@@ -379,6 +389,7 @@ class Uno(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
+    @commands.guild_only()
     async def giveCard(self, ctx, colour, value: typing.Optional[str]):
         """Gives you a card of your choice"""
         exists = await game_exists(ctx, self.games)
@@ -400,6 +411,7 @@ class Uno(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
+    @commands.guild_only()
     async def removeCard(self, ctx, colour, value: typing.Optional[str]):
         """Removes a card from your hand (dev only)"""
         exists = await game_exists(ctx, self.games)
@@ -422,6 +434,7 @@ class Uno(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
+    @commands.guild_only()
     async def removeCards(self, ctx, amount: int):
         """Removes a number of cards from your hand (dev only)"""
         exists = await game_exists(ctx, self.games)

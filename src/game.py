@@ -1,11 +1,10 @@
+from asyncio import TimeoutError
 from random import randint, shuffle
 
+from discord.utils import get
+
+from embed import embed_hand, embed_turn
 from player import Player
-"""
-    IMPORTANT
-    TODO: Add AFK timer
-    TODO: Add game AFK timer
-"""
 
 
 def card_matches(card, hand):
@@ -27,7 +26,7 @@ def card_matches(card, hand):
 class Game:
     """Game class for uno"""
 
-    def __init__(self, owner_id, owner_name, channel_id):
+    def __init__(self, owner_id, owner_name, channel_id, bot):
         self.owner_id = owner_id
         self.channel_id = channel_id
         self.players = {}
@@ -38,6 +37,9 @@ class Game:
         self.deck = None
         self.discard_pile = []
         self.previous_player = None
+        self.last_message = None
+        self.bot = bot
+        self.deleted = False
 
         self.add_player(player_id=owner_id, player_name=owner_name)
 
@@ -49,6 +51,7 @@ class Game:
 
     def start(self):
         """Starts the uno game"""
+        self.started = True
         self.create_deck()
         for player_id, player in self.players.items():
             self.turn_order.append(player_id)
@@ -127,6 +130,58 @@ class Game:
                 self.players[self.turn_order[self.turn]].hand)
 
             self.give_cards(self.turn_order[self.turn], 1)
+
+    async def start_afk_loop(self):
+        """Starts an AFK timeout loop until a player plays"""
+
+        # Add strikes, if a player reaches 3 strikes they get removed
+        # Add game AFK timer using a similar way
+        def pred(ctx):
+            command_name = ctx.command.name
+            if command_name == "play" and self.turn_order[
+                    self.turn] == ctx.author.id:
+                return True
+            else:
+                return False
+
+        try:
+            await self.bot.wait_for('command', check=pred, timeout=60.0)
+        except TimeoutError:
+            print(self.deleted)
+            if self.deleted:
+                return
+            player = self.players[self.turn_order[self.turn]]
+            player.strikes += 1
+            self.next_turn()
+            self.give_cards(player.player_id, 1)
+            embed = embed_turn(
+                action=f"{player.player_name} took to long to play", game=self)
+            channel = await self.bot.fetch_channel(self.channel_id)
+            last_message = await channel.fetch_message(self.last_message)
+            await last_message.delete()
+            msg = await channel.send(embed=embed)
+            self.last_message = msg.id
+
+            if player.strikes == 3:
+                del self.players[player.player_id]
+                self.turn_order.remove(player.player_id)
+                await channel.send(player.player_name +
+                                   " got kicked for being AFK")
+                if len(self.players) == 1:
+                    return
+
+            if len(str(self.turn_order[self.turn])) == 18:
+                member = get(channel.guild.members,
+                             id=self.turn_order[self.turn])
+                dm_channel = member.dm_channel
+                if dm_channel is None:
+                    await member.create_dm()
+                    dm_channel = member.dm_channel
+                embed = embed_hand(player_id=self.turn_order[self.turn],
+                                   action="It's your turn!",
+                                   game=self)
+                await dm_channel.send(embed=embed)
+            await self.start_afk_loop()
 
     def give_cards(self, player_id, amount):
         """Gives the specified player x amount of cards"""

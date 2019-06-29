@@ -1,4 +1,5 @@
 import typing
+from asyncio import TimeoutError
 from random import randint
 
 from discord import Embed
@@ -9,9 +10,6 @@ from discord.utils import get
 from checks import card_matches, check_win, game_exists, valid_card
 from embed import embed_hand, embed_turn
 from game import Game
-"""
-    TODO: Delete old game messages, send a new one whenever players message
-"""
 
 
 def get_action_response(author, game):
@@ -38,11 +36,10 @@ def get_action_response(author, game):
 
 
 class Uno(commands.Cog):
-    games = {}
-
     def __init__(self, bot):
         self.bot = bot
         self.dev_su_id = None
+        self.games = {}
 
     @commands.Cog.listener()
     async def on_command(self, ctx):
@@ -51,7 +48,26 @@ class Uno(commands.Cog):
         except Forbidden:
             pass
 
+        try:
+
+            def pred(pred_ctx):
+                channel = pred_ctx.channel.id == ctx.channel.id
+                if channel and ctx.channel.id in self.games.keys():
+                    return True
+                else:
+                    return False
+
+            await self.bot.wait_for('command', timeout=300.0)
+        except TimeoutError:
+            if self.games[ctx.channel.id].deleted:
+                return
+            self.games[ctx.channel.id].deleted = True
+            del self.games[ctx.channel.id]
+            await ctx.channel.send(
+                "Game was AFK for too long and has now been removed")
+
     @commands.command()
+    @commands.guild_only()
     async def create(self, ctx):
         """Creates a new game"""
         if ctx.channel.id in self.games.keys():
@@ -62,13 +78,15 @@ class Uno(commands.Cog):
         # Creates a new game and adds it to the games dict
         self.games[ctx.channel.id] = Game(owner_id=ctx.author.id,
                                           owner_name=ctx.author.display_name,
-                                          channel_id=ctx.channel.id)
+                                          channel_id=ctx.channel.id,
+                                          bot=self.bot)
         # Log that a new game has been created
         print(f"New game created: {self.games[ctx.channel.id].channel_id}")
         # Send the new game message
         await ctx.send("Game created, players can join it with `;join`!")
 
     @commands.command()
+    @commands.guild_only()
     async def join(self, ctx):
         """Joins a game"""
         exists = await game_exists(ctx, self.games)
@@ -76,6 +94,11 @@ class Uno(commands.Cog):
             return None
 
         game = self.games[ctx.channel.id]
+        if game.started:
+            await ctx.send(
+                "The game has already started, please wait till the game ends!"
+            )
+            return
         if ctx.author.id in game.players.keys():
             await ctx.send("You're already in the game!")
             return None
@@ -96,6 +119,7 @@ class Uno(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.command()
+    @commands.guild_only()
     async def players(self, ctx):
         """Shows all the players in the game"""
         exists = await game_exists(ctx, self.games)
@@ -115,6 +139,7 @@ class Uno(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.command()
+    @commands.guild_only()
     async def start(self, ctx):
         """Starts the game"""
         exists = await game_exists(ctx, self.games)
@@ -143,9 +168,19 @@ class Uno(commands.Cog):
                 await dm_channel.send(embed=embed)
 
         embed = embed_turn(action="Game started, GLHF!", game=game)
-        await ctx.send(embed=embed)
+        msg = await ctx.send(embed=embed)
+        game.last_message = msg.id
+
+        await game.start_afk_loop()
+        try:
+            if len(game.players) == 1 and game.deleted is not True:
+                await ctx.send("Only one player left, removing game")
+                del self.games[ctx.channel.id]
+        except KeyError:
+            pass
 
     @commands.command()
+    @commands.guild_only()
     async def leave(self, ctx):
         """
         Leaves a game,
@@ -160,14 +195,23 @@ class Uno(commands.Cog):
         if self.dev_su_id is not None:
             player_id = self.dev_su_id
 
+        if game.started:
+            if player_id == game.turn_order[game.turn]:
+                del game.turn_order[game.turn]
+                game.next_turn()
+
         del game.players[player_id]
-        if len(game.players) == 0:
+
+        if len(game.players) == 0 or len(game.players) == 1:
+            print(self.games)
+            self.games[ctx.channel.id].deleted = True
             del self.games[ctx.channel.id]
             await ctx.send("Game removed!")
         else:
             await ctx.send(f"{ctx.author.name} has left the game!")
 
     @commands.command()
+    @commands.guild_only()
     async def hand(self, ctx):
         """Sends you a dm with your cards"""
         exists = await game_exists(ctx, self.games)
@@ -178,6 +222,11 @@ class Uno(commands.Cog):
             player_id = self.dev_su_id
 
         game = self.games[ctx.channel.id]
+        if game.started is False:
+            await ctx.send(
+                "The game hasn't started yet, Ask the owner to start the game!"
+            )
+            return
         embed = embed_hand(action="As requested!",
                            player_id=player_id,
                            game=game)
@@ -189,12 +238,21 @@ class Uno(commands.Cog):
         await dm_channel.send(embed=embed)
 
     @commands.command()
+    @commands.guild_only()
     async def play(self, ctx, colour, value):
         """Lets you play a card in your hand"""
+        colour = colour.lower()
+        value = value.lower()
+
         exists = await game_exists(ctx, self.games)
         if exists is False:
             return None
         game = self.games[ctx.channel.id]
+        if game.started is False:
+            await ctx.send(
+                "The game hasn't started yet, Ask the owner to start the game!"
+            )
+            return
 
         player_id = ctx.author.id
         if self.dev_su_id is not None:
@@ -223,6 +281,7 @@ class Uno(commands.Cog):
 
         won = await check_win(ctx=ctx, player_id=player_id, game=game)
         if won:
+            game.deleted = True
             del self.games[ctx.channel.id]
             return None
 
@@ -237,11 +296,22 @@ class Uno(commands.Cog):
                                game=game)
             await dm_channel.send(embed=embed)
 
+        last_message = await ctx.channel.fetch_message(game.last_message)
+        await last_message.delete()
+
         action = get_action_response(ctx.author.display_name, game)
         embed = embed_turn(action=action, game=game)
-        await ctx.send(embed=embed)
+        msg = await ctx.send(embed=embed)
+        game.last_message = msg.id
+
+        await game.start_afk_loop()
+        if len(game.players) == 1:
+            await ctx.send("One player left, removing game")
+            game.deleted = True
+            del self.games[ctx.channel.id]
 
     @commands.command()
+    @commands.guild_only()
     async def uno(self, ctx):
         """
         Let's everyone know you have uno
@@ -251,6 +321,11 @@ class Uno(commands.Cog):
         if exists is False:
             return None
         game = self.games[ctx.channel.id]
+        if game.started is False:
+            await ctx.send(
+                "The game hasn't started yet, Ask the owner to start the game!"
+            )
+            return
 
         player_id = ctx.author.id
         if self.dev_su_id is not None:
@@ -284,6 +359,7 @@ class Uno(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
+    @commands.guild_only()
     async def addPlayer(self, ctx):
         """Adds a new player to the game (dev only)"""
         exists = await game_exists(ctx, self.games)
@@ -298,6 +374,7 @@ class Uno(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
+    @commands.guild_only()
     async def su(self, ctx, player_id: int):
         """Lets you execute commands as other players (dev only)"""
         exists = await game_exists(ctx, self.games)
@@ -312,6 +389,7 @@ class Uno(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
+    @commands.guild_only()
     async def giveCard(self, ctx, colour, value: typing.Optional[str]):
         """Gives you a card of your choice"""
         exists = await game_exists(ctx, self.games)
@@ -333,6 +411,7 @@ class Uno(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
+    @commands.guild_only()
     async def removeCard(self, ctx, colour, value: typing.Optional[str]):
         """Removes a card from your hand (dev only)"""
         exists = await game_exists(ctx, self.games)
@@ -355,6 +434,7 @@ class Uno(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
+    @commands.guild_only()
     async def removeCards(self, ctx, amount: int):
         """Removes a number of cards from your hand (dev only)"""
         exists = await game_exists(ctx, self.games)

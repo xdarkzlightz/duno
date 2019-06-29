@@ -4,6 +4,8 @@
 
 Duno is a Discord bot implementation of the popular card game Uno, written in python using discord.py
 
+[Invite the official bot](https://discordapp.com/api/oauth2/authorize?client_id=593995320791400458&permissions=57344&scope=bot)
+
 Warning: I created this bot in 3 days, as a result the code is very messy and possibly buggy. I've had a couple playthroughs and everything functions normally from what I can tell. If you do run into a bug join the discord server or open a issue
 
 ## Gameplay and Images

@@ -16,6 +16,7 @@ Now onto winning, once a player gets close to winning and have only one card lef
 ![Hand DM](https://i.ibb.co/wBr8dP0/Hand.png)
 
 ![Winning and gameplay](https://i.ibb.co/Rz99qMG/win.png)
+
 (Thanks friend for letting me show this beautiful picture of me winning, this was a legit win btw)
 
 ## Setup

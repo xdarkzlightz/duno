@@ -55,6 +55,8 @@ Create a virtual environment `python3 -m venv venv`, this is recommended so pack
 
 Activate the virtual environment `source ./venv/bin/activate`
 
+Install the packages `pip3 install -r requirements.txt`
+
 Start the bot `python3 ./src/bot.py`
 
 

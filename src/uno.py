@@ -92,6 +92,11 @@ class Uno(commands.Cog):
             return None
 
         game = self.games[ctx.channel.id]
+        if game.started:
+            await ctx.send(
+                "The game has already started, please wait till the game ends!"
+            )
+            return
         if ctx.author.id in game.players.keys():
             await ctx.send("You're already in the game!")
             return None
@@ -185,11 +190,12 @@ class Uno(commands.Cog):
         if self.dev_su_id is not None:
             player_id = self.dev_su_id
 
-        if ctx.author.id == game.turn_order[game.turn]:
-            game.next_turn()
+        if game.started:
+            if player_id == game.turn_order[game.turn]:
+                del game.turn_order[game.turn]
+                game.next_turn()
 
         del game.players[player_id]
-        del game.turn_order[game.turn]
 
         if len(game.players) == 0 or len(game.players) == 1:
             print(self.games)
@@ -210,6 +216,11 @@ class Uno(commands.Cog):
             player_id = self.dev_su_id
 
         game = self.games[ctx.channel.id]
+        if game.started is False:
+            await ctx.send(
+                "The game hasn't started yet, Ask the owner to start the game!"
+            )
+            return
         embed = embed_hand(action="As requested!",
                            player_id=player_id,
                            game=game)
@@ -223,10 +234,18 @@ class Uno(commands.Cog):
     @commands.command()
     async def play(self, ctx, colour, value):
         """Lets you play a card in your hand"""
+        colour = colour.lower()
+        value = value.lower()
+
         exists = await game_exists(ctx, self.games)
         if exists is False:
             return None
         game = self.games[ctx.channel.id]
+        if game.started is False:
+            await ctx.send(
+                "The game hasn't started yet, Ask the owner to start the game!"
+            )
+            return
 
         player_id = ctx.author.id
         if self.dev_su_id is not None:
@@ -294,6 +313,11 @@ class Uno(commands.Cog):
         if exists is False:
             return None
         game = self.games[ctx.channel.id]
+        if game.started is False:
+            await ctx.send(
+                "The game hasn't started yet, Ask the owner to start the game!"
+            )
+            return
 
         player_id = ctx.author.id
         if self.dev_su_id is not None:

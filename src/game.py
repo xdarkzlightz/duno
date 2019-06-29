@@ -51,6 +51,7 @@ class Game:
 
     def start(self):
         """Starts the uno game"""
+        self.started = True
         self.create_deck()
         for player_id, player in self.players.items():
             self.turn_order.append(player_id)
@@ -144,7 +145,7 @@ class Game:
                 return False
 
         try:
-            await self.bot.wait_for('command', check=pred, timeout=10.0)
+            await self.bot.wait_for('command', check=pred, timeout=60.0)
         except TimeoutError:
             print(self.deleted)
             if self.deleted:
